@@ -17,7 +17,7 @@ class VoiceAssistant:
     def __init__(self, model_path, sample_rate=16000, device=None):
         # Get credentials path from environment variable or use project root
         key_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', 
-                            os.path.join(os.path.dirname(__file__), 'google-service-accounts.json'))
+                            os.path.join(os.path.dirname(__file__), 'google-service-account.json'))
 
         # Verify the key file exists
         if not os.path.exists(key_path):

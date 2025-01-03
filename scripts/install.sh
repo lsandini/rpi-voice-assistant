@@ -38,7 +38,8 @@ pip install \
     vosk \
     sounddevice \
     numpy \
-    google-cloud-texttospeech
+    google-cloud-texttospeech \
+    python-dotenv 
 
 # Create necessary directories
 echo "Creating project directories..."
