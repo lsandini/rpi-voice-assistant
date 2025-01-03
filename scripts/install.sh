@@ -50,7 +50,7 @@ mkdir -p "$PROJECT_ROOT/config"
 echo "Downloading Vosk model..."
 cd "$PROJECT_ROOT/models/vosk"
 wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
-unzip vosk-model-small-en-us-0.15.zip
+unzip -o vosk-model-small-en-us-0.15.zip
 rm vosk-model-small-en-us-0.15.zip
 
 # Return to original directory
