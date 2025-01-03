@@ -32,133 +32,76 @@ echo "Installing Python packages..."
 pip install \
     vosk \
     sounddevice \
-    numpy
-
-# Install Piper TTS
-echo "Installing Piper TTS..."
-
-# Determine architecture
-if [ "$1" = "--arm64" ]; then
-    PIPER_ARCH="arm64"
-    echo "Using ARM64 architecture"
-elif [ "$1" = "--amd64" ]; then
-    PIPER_ARCH="amd64"
-    echo "Using AMD64 architecture"
-else
-    ARCH=$(uname -m)
-    echo "Detected architecture: $ARCH"
-    case $ARCH in
-        aarch64|arm64)
-            PIPER_ARCH="arm64"
-            ;;
-        armv7l|armv6l)
-            PIPER_ARCH="armv7"
-            ;;
-        x86_64)
-            PIPER_ARCH="amd64"
-            ;;
-        *)
-            echo "Unsupported architecture: $ARCH"
-            echo "Please specify architecture manually using --arm64 or --amd64"
-            exit 1
-            ;;
-    esac
-fi
-
-echo "Selected Piper architecture: $PIPER_ARCH"
-PIPER_VERSION="1.2.0"
-PIPER_FILE="piper_${PIPER_ARCH}.tar.gz"
-DOWNLOAD_URL="https://github.com/rhasspy/piper/releases/download/v${PIPER_VERSION}/${PIPER_FILE}"
-
-echo "Downloading Piper from: $DOWNLOAD_URL"
-wget --content-disposition "$DOWNLOAD_URL"
-
-echo "Extracting $PIPER_FILE..."
-tar -xvf "$PIPER_FILE"
-
-echo "Installing Piper..."
-# First, clean up any existing installation
-sudo rm -rf /usr/local/bin/piper
-sudo rm -rf /usr/local/bin/espeak-ng-data
-
-# Now copy everything
-sudo cp -r piper/* /usr/local/bin/
-
-echo "Cleaning up..."
-rm -rf piper
-rm "$PIPER_FILE"
+    numpy \
+    google-cloud-texttospeech
 
 # Create necessary directories
 echo "Creating project directories..."
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-mkdir -p "$PROJECT_ROOT/models/"{vosk,piper}
+mkdir -p "$PROJECT_ROOT/models/"{vosk,tts}
 mkdir -p "$PROJECT_ROOT/config"
 
 # Download Vosk model
 echo "Downloading Vosk model..."
 cd "$PROJECT_ROOT/models/vosk"
 wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
-unzip -o vosk-model-small-en-us-0.15.zip
+unzip vosk-model-small-en-us-0.15.zip
 rm vosk-model-small-en-us-0.15.zip
 cd "$SCRIPT_DIR"
 
-# Download Piper voice model
-echo "Downloading Piper voice model..."
-cd "$PROJECT_ROOT/models/piper"
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx -O en_US-lessac-medium.onnx
+# Create Google TTS Python script
+echo "Creating Google TTS script..."
+cat > "$PROJECT_ROOT/tts.py" << 'EOF'
+from google.cloud import texttospeech
+import os
 
-# Create Piper configuration
-echo "Creating Piper configuration..."
-cat > en_US-lessac-medium.json << 'EOF'
-{
-    "num_symbols": 256,
-    "sample_rate": 22050,
-    "decoder_dim": 768,
-    "encoder_dim": 192,
-    "duration_predictor_dim": 256,
-    "duration_predictor_kernel_size": 3,
-    "duration_predictor_dropout": 0.5,
-    "espeak": {
-        "voice": "en-us",
-        "voice_id": 0
-    },
-    "encoder_n_convolutions": 3,
-    "use_text": true,
-    "model_type": "transformer",
-    "length_scale": 1.0,
-    "noise_scale": 0.667,
-    "noise_w": 0.8,
-    "speaker_id": 0
-}
+def text_to_speech(text, output_file='/tmp/google_tts_output.wav', language_code='en-US'):
+    # Set the path to your JSON key file
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(os.path.dirname(__file__), 'config/google_service_account.json')
 
+    # Instantiates a client
+    client = texttospeech.TextToSpeechClient()
+
+    # Set the text input to be synthesized
+    synthesis_input = texttospeech.SynthesisInput(text=text)
+
+    # Build the voice request
+    voice = texttospeech.VoiceSelectionParams(
+        language_code=language_code,
+        ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+    )
+
+    # Select the type of audio file you want returned
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.LINEAR16
+    )
+
+    # Perform the text-to-speech request
+    response = client.synthesize_speech(
+        input=synthesis_input, 
+        voice=voice, 
+        audio_config=audio_config
+    )
+
+    # Write the response to the output file
+    with open(output_file, 'wb') as out:
+        out.write(response.audio_content)
+        print(f'Audio content written to file {output_file}')
+
+    # Play the audio file
+    os.system(f'aplay {output_file}')
+
+# Example usage
+if __name__ == "__main__":
+    text_to_speech("Hello, this is a test of Google Text-to-Speech")
 EOF
 
-# Return to script directory
-cd "$SCRIPT_DIR"
-
-# Test Piper
-echo "Testing Piper installation..."
-if command -v piper &> /dev/null; then
-    echo "Piper found. Testing synthesis..."
-    echo "Using config at: $PROJECT_ROOT/models/piper/en_US-lessac-medium.json"
-    echo "Config contents:"
-    cat "$PROJECT_ROOT/models/piper/en_US-lessac-medium.json"
-    echo "Running test..."
-    if echo "Test" | piper \
-        --model "$PROJECT_ROOT/models/piper/en_US-lessac-medium.onnx" \
-        --config "$PROJECT_ROOT/models/piper/en_US-lessac-medium.json" \
-        --output_raw \
-        --debug 2>&1; then
-        echo "Piper synthesis test successful!"
-    else
-        echo "Warning: Piper synthesis test failed. Try running this command manually:"
-        echo "echo 'Test' | piper --model $PROJECT_ROOT/models/piper/en_US-lessac-medium.onnx --config $PROJECT_ROOT/models/piper/en_US-lessac-medium.json --output_raw"
-    fi
-else
-    echo "Warning: Piper not found in PATH."
-fi
+# Instruction for service account key
+echo "IMPORTANT: Please place your Google Cloud service account JSON key file at:"
+echo "$PROJECT_ROOT/config/google_service_account.json"
 
 echo "Installation complete!"
 echo "Please edit config/custom.json with your API keys and preferences"
+echo "Ensure you've placed the Google Cloud service account key at config/google_service_account.json"
 echo "Run 'npm start' to launch the voice assistant"
