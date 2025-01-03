@@ -99,7 +99,7 @@ mkdir -p "$PROJECT_ROOT/config"
 echo "Downloading Vosk model..."
 cd "$PROJECT_ROOT/models/vosk"
 wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
-unzip vosk-model-small-en-us-0.15.zip
+unzip vosk-model-small-en-us-0.15.zip -o 
 rm vosk-model-small-en-us-0.15.zip
 cd "$SCRIPT_DIR"
 
@@ -119,7 +119,7 @@ cat > en_US-lessac-medium.json << 'EOF'
     "noise_scale": 0.667,
     "noise_w": 0.8,
     "sample_rate": 22050,
-    "speaker_id": 0
+    "speaker_id": 1
 }
 EOF
 
