@@ -1,3 +1,3 @@
 git add .
-git commit -m "google instead of piper"
+git commit -m "separate stt.py"
 git push -u origin main
