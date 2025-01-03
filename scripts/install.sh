@@ -112,15 +112,26 @@ wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/me
 echo "Creating Piper configuration..."
 cat > en_US-lessac-medium.json << 'EOF'
 {
+    "num_symbols": 256,
+    "sample_rate": 22050,
+    "decoder_dim": 768,
+    "encoder_dim": 192,
+    "duration_predictor_dim": 256,
+    "duration_predictor_kernel_size": 3,
+    "duration_predictor_dropout": 0.5,
     "espeak": {
-        "voice": "en-us"
+        "voice": "en-us",
+        "voice_id": 0
     },
+    "encoder_n_convolutions": 3,
+    "use_text": true,
+    "model_type": "transformer",
     "length_scale": 1.0,
     "noise_scale": 0.667,
     "noise_w": 0.8,
-    "sample_rate": 22050,
     "speaker_id": 0
 }
+
 EOF
 
 # Return to script directory
