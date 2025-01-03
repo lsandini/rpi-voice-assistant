@@ -47,31 +47,21 @@ class VoiceAssistant:
         
         def audio_callback(indata, frames, time, status):
             if status:
-                # Only print non-empty status messages
-                if str(status).strip():
-                    print(f"Audio input status: {status}")
-                return
-            
+                print(status)
             # Convert indata to bytes
             data_bytes = indata.astype(np.int16).tobytes()
-            
-            # Use a try-except to handle potential processing errors
-            try:
-                if rec.AcceptWaveform(data_bytes):
-                    result = json.loads(rec.Result())
-                    if result.get('text', '').strip():
-                        self.text_queue.put(result['text'])
-            except Exception as e:
-                print(f"Error processing audio: {e}")
+            if rec.AcceptWaveform(data_bytes):
+                result = json.loads(rec.Result())
+                if result.get('text', '').strip():
+                    self.text_queue.put(result['text'])
 
-        # Open microphone stream with a larger buffer
+        # Open microphone stream
         with sd.InputStream(
             samplerate=self.sample_rate, 
             device=self.device,
             dtype='int16', 
             channels=1, 
-            callback=audio_callback,
-            blocksize=2048  # Increase buffer size
+            callback=audio_callback
         ):
             print("Listening... Speak now.")
             
@@ -98,4 +88,62 @@ class VoiceAssistant:
                 print("\nStopping voice assistant...")
                 self.stop_event.set()
 
-    # ... (rest of the script remains the same)
+    def text_to_speech(self, text, output_file='/tmp/tts_output.wav', language_code='en-US'):
+        # Set the text input to be synthesized
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+
+        # Build the voice request
+        voice = texttospeech.VoiceSelectionParams(
+            language_code=language_code,
+            ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+
+        # Select the type of audio file you want returned
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16
+        )
+
+        # Perform the text-to-speech request
+        response = self.tts_client.synthesize_speech(
+            input=synthesis_input, 
+            voice=voice, 
+            audio_config=audio_config
+        )
+
+        # Write the response to the output file
+        with open(output_file, 'wb') as out:
+            out.write(response.audio_content)
+            print(f'Audio content written to file {output_file}')
+
+        # Play the audio file
+        os.system(f'aplay {output_file}')
+
+    def process_command(self, text):
+        # Simple command processing
+        text = text.lower().strip()
+        
+        # Example commands
+        if "hello" in text:
+            self.text_to_speech("Hello! How can I help you?")
+        elif "time" in text:
+            current_time = datetime.now().strftime("%I:%M %p")
+            self.text_to_speech(f"The current time is {current_time}")
+        elif "goodbye" in text or "bye" in text:
+            self.text_to_speech("Goodbye! Have a great day.")
+            self.stop_event.set()
+        else:
+            # Echo back the recognized text
+            self.text_to_speech(f"You said: {text}")
+
+def main():
+    # Path to Vosk model (adjust to your actual model path)
+    vosk_model_path = "/home/lorenzo/rpi-voice-assistant/models/vosk/vosk-model-small-en-us-0.15"
+    
+    # Initialize voice assistant
+    assistant = VoiceAssistant(vosk_model_path)
+    
+    # Start listening
+    assistant.recognize_speech()
+
+if __name__ == "__main__":
+    main()
