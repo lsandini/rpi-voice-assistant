@@ -10,6 +10,11 @@ lerna-debug.log*
 scripts/models
 scripts/venv
 
+# Custom additions for voice assistant project
+config/custom.json
+*.onnx
+*.wav
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
