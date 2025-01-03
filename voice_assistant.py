@@ -160,6 +160,17 @@ class VoiceAssistant:
         # Simple command processing
         text = text.lower().strip()
         
+        # Prevent repeated processing of the same text
+        if not hasattr(self, '_last_processed_text'):
+            self._last_processed_text = None
+
+        # Ignore if the text is the same as the last processed text
+        if text == self._last_processed_text:
+            return
+
+        # Update the last processed text
+        self._last_processed_text = text
+        
         # Example commands
         if "hello" in text:
             self.text_to_speech("Hello! How can I help you?")
@@ -170,7 +181,7 @@ class VoiceAssistant:
             self.text_to_speech("Goodbye! Have a great day.")
             self.stop_event.set()
         else:
-            # Echo back the recognized text
+            # Echo back the recognized text only once
             self.text_to_speech(f"You said: {text}")
 
 def main():
