@@ -90,48 +90,58 @@ rm "$PIPER_FILE"
 
 # Create necessary directories
 echo "Creating project directories..."
-mkdir -p models/{vosk,piper}
-mkdir -p config
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+mkdir -p "$PROJECT_ROOT/models/"{vosk,piper}
+mkdir -p "$PROJECT_ROOT/config"
 
 # Download Vosk model
 echo "Downloading Vosk model..."
+cd "$PROJECT_ROOT/models/vosk"
 wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
-unzip vosk-model-small-en-us-0.15.zip -d models/vosk/
+unzip vosk-model-small-en-us-0.15.zip
 rm vosk-model-small-en-us-0.15.zip
+cd "$SCRIPT_DIR"
 
 # Download Piper voice model
 echo "Downloading Piper voice model..."
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx -O models/piper/en_US-lessac-medium.onnx
+cd "$PROJECT_ROOT/models/piper"
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx -O en_US-lessac-medium.onnx
 
 # Create Piper configuration
 echo "Creating Piper configuration..."
-cat > models/piper/en_US-lessac-medium.json << 'EOF'
+cat > en_US-lessac-medium.json << 'EOF'
 {
-    "audio": {
-        "sample_rate": 22050
-    },
     "espeak": {
         "voice": "en-us"
     },
-    "inference": {
-        "length_scale": 1.0,
-        "noise_scale": 0.667,
-        "noise_w": 0.8
-    }
+    "length_scale": 1.0,
+    "noise_scale": 0.667,
+    "noise_w": 0.8,
+    "sample_rate": 22050
 }
 EOF
+
+# Return to script directory
+cd "$SCRIPT_DIR"
 
 # Test Piper
 echo "Testing Piper installation..."
 if command -v piper &> /dev/null; then
     echo "Piper found. Testing synthesis..."
+    echo "Using config at: $PROJECT_ROOT/models/piper/en_US-lessac-medium.json"
+    echo "Config contents:"
+    cat "$PROJECT_ROOT/models/piper/en_US-lessac-medium.json"
+    echo "Running test..."
     if echo "Test" | piper \
-        --model models/piper/en_US-lessac-medium.onnx \
-        --config models/piper/en_US-lessac-medium.json \
-        --output_raw > /dev/null; then
+        --model "$PROJECT_ROOT/models/piper/en_US-lessac-medium.onnx" \
+        --config "$PROJECT_ROOT/models/piper/en_US-lessac-medium.json" \
+        --output_raw \
+        --debug 2>&1; then
         echo "Piper synthesis test successful!"
     else
-        echo "Warning: Piper synthesis test failed."
+        echo "Warning: Piper synthesis test failed. Try running this command manually:"
+        echo "echo 'Test' | piper --model $PROJECT_ROOT/models/piper/en_US-lessac-medium.onnx --config $PROJECT_ROOT/models/piper/en_US-lessac-medium.json --output_raw"
     fi
 else
     echo "Warning: Piper not found in PATH."

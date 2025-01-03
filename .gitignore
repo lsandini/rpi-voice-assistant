@@ -9,6 +9,7 @@ lerna-debug.log*
 
 scripts/models
 scripts/venv
+/venv
 
 # Custom additions for voice assistant project
 config/custom.json
