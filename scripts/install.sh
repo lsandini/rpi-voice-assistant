@@ -119,7 +119,7 @@ cat > en_US-lessac-medium.json << 'EOF'
     "noise_scale": 0.667,
     "noise_w": 0.8,
     "sample_rate": 22050,
-    "speaker_id": 1
+    "speaker_id": 0
 }
 EOF
 
