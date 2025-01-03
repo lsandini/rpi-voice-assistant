@@ -16,6 +16,8 @@ scripts/venv
 config/custom.json
 *.onnx
 *.wav
+google-service-account.json
+
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -138,3 +140,4 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+.env

@@ -22,8 +22,13 @@ sudo apt-get install -y \
     libasound2-dev \
     alsa-utils
 
+# Determine script and project directories
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 # Create Python virtual environment
 echo "Setting up Python virtual environment..."
+cd "$PROJECT_ROOT"
 python3 -m venv venv
 source venv/bin/activate
 
@@ -37,8 +42,6 @@ pip install \
 
 # Create necessary directories
 echo "Creating project directories..."
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 mkdir -p "$PROJECT_ROOT/models/"{vosk,tts}
 mkdir -p "$PROJECT_ROOT/config"
 
@@ -48,7 +51,9 @@ cd "$PROJECT_ROOT/models/vosk"
 wget https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
 unzip vosk-model-small-en-us-0.15.zip
 rm vosk-model-small-en-us-0.15.zip
-cd "$SCRIPT_DIR"
+
+# Return to original directory
+cd "$PROJECT_ROOT"
 
 # Create Google TTS Python script
 echo "Creating Google TTS script..."
@@ -58,7 +63,7 @@ import os
 
 def text_to_speech(text, output_file='/tmp/google_tts_output.wav', language_code='en-US'):
     # Set the path to your JSON key file
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(os.path.dirname(__file__), 'config/google_service_account.json')
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(os.path.dirname(__file__), 'google-service-account.json')
 
     # Instantiates a client
     client = texttospeech.TextToSpeechClient()
@@ -79,8 +84,8 @@ def text_to_speech(text, output_file='/tmp/google_tts_output.wav', language_code
 
     # Perform the text-to-speech request
     response = client.synthesize_speech(
-        input=synthesis_input, 
-        voice=voice, 
+        input=synthesis_input,
+        voice=voice,
         audio_config=audio_config
     )
 
@@ -99,9 +104,9 @@ EOF
 
 # Instruction for service account key
 echo "IMPORTANT: Please place your Google Cloud service account JSON key file at:"
-echo "$PROJECT_ROOT/config/google_service_account.json"
+echo "$PROJECT_ROOT/google-service-account.json"
 
 echo "Installation complete!"
 echo "Please edit config/custom.json with your API keys and preferences"
-echo "Ensure you've placed the Google Cloud service account key at config/google_service_account.json"
+echo "Ensure you've placed the Google Cloud service account key at google-service-account.json"
 echo "Run 'npm start' to launch the voice assistant"
